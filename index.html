@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <title>動画モーダル表示テスト</title>
+    <style>
+        body{
+            background:#aaa;
+            margin: 0;
+            padding: 0;
+        }
+        #wrap{
+            background: url(./img/topDesign.png) top center no-repeat;
+            background-size: 100%;
+            width:100%;
+            height:100vh;
+            margin: 0 auto;
+            position:relative;
+            overflow:hidden;
+        }
+        /*========= video ===============*/
+        .modal {
+            opacity:0; /* 初期状態は非表示 */
+            position: fixed;
+            z-index:1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center; /* 縦方向の中央寄せ */
+            justify-content: center; /* 横方向の中央寄せ */
+            pointer-events: all;
+        }
+
+        .modal-content {
+            position: relative;
+            width: 100%; /* 幅を100%に拡大 */
+            border-radius: 10px;
+            text-align: center;
+            padding: 10px; /* パディングを縮小 */
+        }
+
+        .modal-content iframe {
+            width: 100%; /* 動画を親要素の幅に合わせる */
+            height: 530px; /* 動画の高さを指定 */
+            max-height: 70vh; /* 画面高さの70%以内に制限 */
+        }
+        .modal-buttons {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .modal-buttons button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            color: white;
+        }
+        #closeBtn {
+            background-color: #555;
+        }
+
+        #dontShowModal {
+            background-color: #d9534f;
+        }
+        @media screen and (min-width: 1000px){
+            #wrap{
+                width: 720px;
+            }
+            .modal-content {
+                width: 90%; /* デフォルトは幅90% */
+                max-width: 900px; /* 最大幅900px */
+                padding: 20px; /* パディングを広げる */
+            }
+
+            .modal-content iframe {
+                height: 500px; /* 動画の高さを拡大 */
+                max-height: 80vh; /* 画面高さの80%以内に制限 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="wrap">
+        <div id="videoModal" class="modal">
+            <div class="modal-content">
+                <!-- YouTube埋め込み -->
+                <iframe
+                    width="560"
+                    height="315"
+                    src="https://www.youtube.com/embed/UB5HQs8R_DE?si=i8djatBAGABsR-Vx"
+                    title="YouTube video player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen>
+                </iframe>
+                <div class="modal-buttons">
+                    <button id="closeBtn">閉じる</button>
+                    <button id="dontShowModal">次回から表示しない</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function(){
+            SHOW_VIDEO();
+            //動画モーダル表示
+            function SHOW_VIDEO(){
+                const modal = $("#videoModal");
+                const youtubePlayer = $("#youtubePlayer");
+
+                //経過時間(秒)を設定
+                const MODAL_REDISPLAY_DELAY = 10; //ここに再表示するまでの時間(秒)を設定
+                const delayInMilliseconds = MODAL_REDISPLAY_DELAY * 1000; //ミリ秒に変換
+
+                //現在の時間を取得
+                const currentTime = new Date().getTime();
+
+                //次回から表示しないをクリックした場合
+                const dontShowUntil = localStorage.getItem("dontShowUntil");
+
+                //次回から表示しないがtrueかつ設定時間を経過したかチェック
+                if(dontShowUntil && currentTime  < dontShowUntil){
+                    modal.css("pointer-events", "none");// モーダルのポインターイベントを無効化
+                    return;//何もせず終了
+                }
+
+                // モーダルを表示
+                setTimeout(function(){
+                    modal.css("pointer-events", "all"); // ポインターイベントを有効化
+                    modal.animate({ "opacity": 1 }, 800);
+                },1000);
+
+                // [閉じる]ボタン
+                $("#closeBtn").click(function () {
+                    closeModal(false);
+                });
+
+                // [次回から表示しない]ボタン
+                $("#dontShowModal").click(function () {
+                    closeModal(true);
+                });
+
+                // モーダルの外側をクリックで閉じる
+                $(window).click(function (event) {
+                    if ($(event.target).is(modal)) {
+                        closeModal(false);
+                    }
+                });
+
+                // モーダルを閉じる関数
+                function closeModal(skipUntil) {
+                    modal.fadeOut(800, function () {
+                        stopYouTubeVideo();
+                    });
+
+                    if(skipUntil){
+                        const dontShowUntil = new Date().getTime() + delayInMilliseconds;
+                        localStorage.setItem("dontShowUntil", dontShowUntil);
+                    }else{
+                        localStorage.removeItem("dontShowUntil");//再表示できるようにする
+                    }
+                }
+                // YouTube動画を停止する関数
+                function stopYouTubeVideo() {
+                    youtubePlayer.src = youtubePlayer.src; // iframeをリロードして再生を停止
+                }
+            }
+        });
+    </script>
+</body>
+</html>
